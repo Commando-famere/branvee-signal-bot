@@ -1,8 +1,8 @@
 """
-BRANVEE GOLD SIGNAL BOT - CORRECT FLOW
-- GET SIGNAL button at bottom
-- After signal, returns to same menu
-- No extra messages
+BRANVEE SIGNAL BOT - CORRECT BUTTON PLACEMENT
+- GET SIGNAL button at VERY BOTTOM
+- Change Strategy button above it
+- Sticker appears, then returns to same menu
 """
 
 import logging
@@ -25,12 +25,21 @@ from telegram.ext import (
 # CONFIGURATION
 # ============================================
 
-BOT_TOKEN = os.environ.get('SIGNAL_BOT_TOKEN', '8741454658:AAGlyxcVQMH7tKd13OmM2Y2VGa9ex9LbPfo')
-ADMIN_ID = int(os.environ.get('ADMIN_ID', 6980711942))
-API_URL = os.environ.get('RAILWAY_API_URL', 'https://branvee-gold-system-production.up.railway.app')
+BOT_TOKEN = "8741454658:AAGlyxcVQMH7tKd13OmM2Y2VGa9ex9LbPfo"
+API_URL = "https://branvee-gold-system-production.up.railway.app"
 DB_PATH = 'data/branvee.db'
 
 os.makedirs('data', exist_ok=True)
+
+# ============================================
+# YOUR REAL STICKER IDs
+# ============================================
+
+STICKERS = {
+    'BUY': 'CAACAgUAAxkBAAEQrM1pqHn0R0kEa_N26VvUd3ql5z2ALQAC8BAAAuyHeVQNfOSljHlxXToE',
+    'SELL': 'CAACAgUAAxkBAAEQrM9pqHn3xrEok5y9PgRla3BDglVNRwACBBIAAyV4VL-svKl04_rUOgQ',
+    'HOLD': 'CAACAgUAAxkBAAEQrNFpqHoAAYs3q4IclmTtzx1bM5jWTmMAAnMVAAJkTHlUfqdnK5jbckQ6BA'
+}
 
 # ============================================
 # DATABASE
@@ -49,6 +58,7 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+    print("✅ Database initialized")
 
 def get_user_by_email(email):
     conn = sqlite3.connect(DB_PATH)
@@ -85,7 +95,7 @@ EMAIL, TOKEN = range(2)
 # AUTH HANDLERS
 # ============================================
 
-async function start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
         "📧 **BRANVEE GOLD SIGNAL** 📧\n\nPlease enter your registered email address:",
@@ -93,7 +103,7 @@ async function start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return EMAIL
 
-async function handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     email = update.message.text.strip()
     telegram_id = update.effective_user.id
     
@@ -120,8 +130,7 @@ async function handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'id': user['id'],
         'email': user['email'],
         'token': user['token'],
-        'expires_at': user['expires_at'],
-        'telegram_id': user['telegram_id']
+        'expires_at': user['expires_at']
     }
     context.user_data['telegram_id'] = telegram_id
     
@@ -130,7 +139,7 @@ async function handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return TOKEN
 
-async function handle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     token = update.message.text.strip().upper()
     user = context.user_data.get('auth_user')
     telegram_id = context.user_data.get('telegram_id')
@@ -143,7 +152,7 @@ async function handle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Invalid token. Try again:")
         return TOKEN
     
-    if not user['telegram_id']:
+    if not user.get('telegram_id'):
         link_telegram_id(user['id'], telegram_id)
     
     context.user_data['user_id'] = user['id']
@@ -164,24 +173,23 @@ async function handle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_main_menu(update, context)
     return ConversationHandler.END
 
-async function show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show menu with GET SIGNAL at bottom"""
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show menu with buttons at BOTTOM where keyboard would be"""
     
-    message = "\n\n\n\n\n\n\n\n👑 **GET SIGNAL** 👑\n"
+    # Create message with just a dot to make buttons appear at bottom
+    message = "."
     
     keyboard = [
-        [InlineKeyboardButton("👑 GET SIGNAL 👑", callback_data='get_signal')],
-        [InlineKeyboardButton("Change Strategy", callback_data='menu_strategy')],
-        [InlineKeyboardButton("Account Info", callback_data='menu_account')]
+        [InlineKeyboardButton("🔄 Change Strategy", callback_data='menu_strategy')],
+        [InlineKeyboardButton("📊 GET SIGNAL 📊", callback_data='get_signal')]
     ]
     
     await update.message.reply_text(
         message,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async function cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Cancelled.")
     return ConversationHandler.END
 
@@ -189,7 +197,7 @@ async function cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MENU HANDLERS
 # ============================================
 
-async function menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
@@ -201,32 +209,14 @@ async function menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await show_strategy_menu(query)
     elif data == 'menu_account':
         await show_account_info(query, context)
-    elif data == 'menu_main':
-        await show_main_menu_callback(query, context)
 
-async function show_main_menu_callback(query, context):
-    """Show menu from callback"""
-    message = "\n\n\n\n\n\n\n\n👑 **GET SIGNAL** 👑\n"
-    
-    keyboard = [
-        [InlineKeyboardButton("👑 GET SIGNAL 👑", callback_data='get_signal')],
-        [InlineKeyboardButton("Change Strategy", callback_data='menu_strategy')],
-        [InlineKeyboardButton("Account Info", callback_data='menu_account')]
-    ]
-    
-    await query.edit_message_text(
-        message,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
-
-async function show_strategy_menu(query):
+async def show_strategy_menu(query):
     keyboard = [
         [InlineKeyboardButton("📊 Scalping", callback_data='strategy_scalping')],
         [InlineKeyboardButton("📈 Trend", callback_data='strategy_trend')],
         [InlineKeyboardButton("📉 Pressure", callback_data='strategy_pressure')],
         [InlineKeyboardButton("📊 Fractals", callback_data='strategy_fractals')],
-        [InlineKeyboardButton("🔙 Back", callback_data='menu_main')]
+        [InlineKeyboardButton("🔙 Back", callback_data='menu_back')]
     ]
     
     await query.edit_message_text(
@@ -235,7 +225,7 @@ async function show_strategy_menu(query):
         parse_mode='Markdown'
     )
 
-async function show_account_info(query, context):
+async def show_account_info(query, context):
     user_id = context.user_data.get('user_id')
     user = get_user_by_id(user_id)
     
@@ -252,7 +242,7 @@ async function show_account_info(query, context):
         f"🔒 **Linked:** {'Yes' if user['telegram_id'] else 'No'}"
     )
     
-    keyboard = [[InlineKeyboardButton("🔙 Back", callback_data='menu_main')]]
+    keyboard = [[InlineKeyboardButton("🔙 Back", callback_data='menu_back')]]
     
     await query.edit_message_text(
         message,
@@ -260,74 +250,86 @@ async function show_account_info(query, context):
         parse_mode='Markdown'
     )
 
-async function strategy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def strategy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
     data = query.data
+    strategy = data.replace('strategy_', '').upper()
     
-    strategies = {
-        'strategy_scalping': 'SCALPING',
-        'strategy_trend': 'TREND',
-        'strategy_pressure': 'PRESSURE',
-        'strategy_fractals': 'FRACTALS'
-    }
+    context.user_data['strategy'] = strategy
     
-    if data in strategies:
-        context.user_data['strategy'] = strategies[data]
-        await query.edit_message_text(
-            f"✅ Strategy: {strategies[data]}",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("👑 GET SIGNAL 👑", callback_data='get_signal')
-            ]]),
-            parse_mode='Markdown'
-        )
+    await query.edit_message_text(
+        f"✅ Strategy: {strategy}",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("📊 GET SIGNAL 📊", callback_data='get_signal')
+        ]]),
+        parse_mode='Markdown'
+    )
+
+async def menu_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await show_main_menu_callback(query, context)
+
+async def show_main_menu_callback(query, context):
+    """Show menu from callback"""
+    message = "."
+    
+    keyboard = [
+        [InlineKeyboardButton("🔄 Change Strategy", callback_data='menu_strategy')],
+        [InlineKeyboardButton("📊 GET SIGNAL 📊", callback_data='get_signal')]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 # ============================================
-# SIGNAL HANDLER
+# SIGNAL HANDLER - REAL STICKERS
 # ============================================
 
-async function handle_signal(query, context):
-    """Handle GET SIGNAL - returns signal and returns to menu"""
+async def handle_signal(query, context):
+    """Handle GET SIGNAL - sends REAL sticker"""
     
     if 'user_id' not in context.user_data:
         await query.edit_message_text("Session expired. Please /start again.")
         return
     
     try:
+        # Get signal from API
         response = requests.get(f"{API_URL}/api/signal", timeout=5)
         data = response.json()
         signal = data.get('signal', 'HOLD')
         
-        if signal == 'BUY':
-            emoji = "🟢" * 16 + "\n" + "🟢" * 16 + "\n" + "🟢" * 16
-        elif signal == 'SELL':
-            emoji = "🔴" * 16 + "\n" + "🔴" * 16 + "\n" + "🔴" * 16
-        else:
-            emoji = "⚪" * 16 + "\n" + "⚪" * 16 + "\n" + "⚪" * 16
+        # Send REAL sticker
+        sticker_id = STICKERS.get(signal, STICKERS['HOLD'])
+        await query.message.reply_sticker(sticker_id)
         
-        # Send signal
-        await query.message.reply_text(emoji)
-        
-        # Return to menu - EXACTLY as before
-        message = "\n\n\n\n\n\n\n\n👑 **GET SIGNAL** 👑\n"
-        
+        # Return to menu with buttons at bottom
+        message = "."
         keyboard = [
-            [InlineKeyboardButton("👑 GET SIGNAL 👑", callback_data='get_signal')],
-            [InlineKeyboardButton("Change Strategy", callback_data='menu_strategy')],
-            [InlineKeyboardButton("Account Info", callback_data='menu_account')]
+            [InlineKeyboardButton("🔄 Change Strategy", callback_data='menu_strategy')],
+            [InlineKeyboardButton("📊 GET SIGNAL 📊", callback_data='get_signal')]
         ]
-        
         await query.message.reply_text(
             message,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         
     except Exception as e:
         await query.message.reply_text("❌ Error")
         # Still return to menu
-        await show_main_menu_callback(query, context)
+        message = "."
+        keyboard = [
+            [InlineKeyboardButton("🔄 Change Strategy", callback_data='menu_strategy')],
+            [InlineKeyboardButton("📊 GET SIGNAL 📊", callback_data='get_signal')]
+        ]
+        await query.message.reply_text(
+            message,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 # ============================================
 # MAIN
@@ -353,12 +355,14 @@ def main():
     # Callback handlers
     app.add_handler(CallbackQueryHandler(menu_callback, pattern='^(get_signal|menu_)'))
     app.add_handler(CallbackQueryHandler(strategy_callback, pattern='^strategy_'))
+    app.add_handler(CallbackQueryHandler(menu_back, pattern='^menu_back$'))
     
     print("\n" + "="*60)
-    print("🤖 BRANVEE SIGNAL BOT - CORRECT FLOW")
+    print("🤖 BRANVEE SIGNAL BOT - CORRECT BUTTONS")
     print("="*60)
-    print("✅ GET SIGNAL button at bottom")
-    print("✅ Returns to same menu after signal")
+    print("✅ REAL stickers installed")
+    print("✅ GET SIGNAL button at BOTTOM")
+    print("✅ Change Strategy button above it")
     print("="*60 + "\n")
     
     app.run_polling()
